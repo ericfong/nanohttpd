@@ -154,7 +154,7 @@ public abstract class NanoHTTPD {
                                     try {
                                         outputStream = finalAccept.getOutputStream();
                                         TempFileManager tempFileManager = tempFileManagerFactory.create();
-                                        HTTPSession session = new HTTPSession(tempFileManager, inputStream, outputStream);
+                                        HTTPSession session = new HTTPSession(finalAccept, tempFileManager, inputStream, outputStream);
                                         while (!finalAccept.isClosed()) {
                                             session.execute();
                                         }
@@ -188,7 +188,8 @@ public abstract class NanoHTTPD {
     public void stop() {
         try {
             safeClose(myServerSocket);
-            myThread.join();
+            if (myThread != null)
+            	myThread.join();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -339,7 +340,7 @@ public abstract class NanoHTTPD {
      * HTTP Request methods, with the ability to decode a <code>String</code> back to its enum value.
      */
     public enum Method {
-        GET, PUT, POST, DELETE, HEAD;
+        GET, PUT, POST, DELETE, HEAD, OPTIONS;
 
         static Method lookup(String method) {
             for (Method m : Method.values()) {
@@ -750,6 +751,7 @@ public abstract class NanoHTTPD {
 
     protected class HTTPSession implements IHTTPSession {
         public static final int BUFSIZE = 8192;
+        private final Socket socket;
         private final TempFileManager tempFileManager;
         private final OutputStream outputStream;
         private InputStream inputStream;
@@ -761,10 +763,15 @@ public abstract class NanoHTTPD {
         private Map<String, String> headers;
         private CookieHandler cookies;
 
-        public HTTPSession(TempFileManager tempFileManager, InputStream inputStream, OutputStream outputStream) {
+        public HTTPSession(Socket socket, TempFileManager tempFileManager, InputStream inputStream, OutputStream outputStream) {
+            this.socket = socket;
             this.tempFileManager = tempFileManager;
             this.inputStream = inputStream;
             this.outputStream = outputStream;
+        }
+        
+        public Socket getSocket() {
+            return socket;
         }
 
         @Override
